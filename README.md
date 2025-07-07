@@ -208,5 +208,165 @@ git push
 ````
 
 ---
+📈 Extended Monitoring (Logs + Metrics)
+This project includes advanced monitoring capabilities using Prometheus, Grafana, Loki, Promtail, and Node Exporter.
 
-If you’d like, I can help you **customize further** (e.g., add screenshots, specific instructions, or enhancements). Just share! 🚀
+🔧 Use Loki + Promtail + Grafana
+This is the recommended stack for log monitoring:
+
+Component	Purpose
+Loki	Stores logs (like Prometheus for logs)
+Promtail	Collects logs from your app/host
+Grafana	Visualizes logs (via Loki)
+
+🛠️ Step-by-Step Setup
+1. 🐳 Install Loki and Promtail Using Docker Compose
+
+Inside your monitoring/ folder, update your docker-compose.yml:
+
+version: '3'
+
+services:
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+  loki:
+    image: grafana/loki:2.9.4
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    volumes:
+      - /var/log:/var/log
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+
+volumes:
+  grafana-storage:
+  
+2.Create promtail-config.yaml in monitoring/ folder:
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          __path__: /var/log/*.log
+This collects logs like /var/log/syslog, /var/log/docker.log, etc.
+
+3. 🚀 Start All Services
+Run from inside your monitoring/ folder:
+
+bash
+Copy
+Edit
+docker-compose up -d
+
+4. 📊 Connect Loki to Grafana
+Visit Grafana: http://<EC2_PUBLIC_IP>:3000
+
+Go to Settings → Data Sources → Add data source
+
+Choose Loki
+
+Set the URL to: http://loki:3100
+
+Click Save & Test
+
+
+📝 To Monitor App Logs
+If you want to monitor logs specifically from your Dockerized app, update the Promtail config to:
+
+yaml
+Copy
+Edit
+scrape_configs:
+  - job_name: myapp
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: myapp
+          __path__: /var/lib/docker/containers/*/*.log
+
+✅ Metrics Monitoring (System & Containers)
+Prometheus scrapes metrics from:
+
+Docker containers
+
+The EC2 host via Node Exporter
+
+Grafana visualizes these metrics using dashboards
+
+📌 To view system-level metrics:
+
+Access Grafana: http://<EC2-Public-IP>:3000
+
+Login with default credentials (admin / admin)
+
+Go to ➕ Create > Import
+
+Use Dashboard ID 1860 for Node Exporter / Linux host overview
+
+✅ Logs Monitoring with Loki + Promtail + Grafana
+Logs are captured in real-time from your EC2 instance:
+
+Promtail collects logs from /var/log/ and Docker containers
+
+Loki stores and indexes these logs
+
+Grafana queries and visualizes logs via the Loki data source
+
+📌 To explore logs:
+
+Go to Grafana → Explore
+
+Select Loki as data source
+
+Query:
+
+arduino
+Copy
+Edit
+{job="varlogs"}
+Or:
+
+arduino
+Copy
+Edit
+{job="myapp"}
+You’ll see logs from system files or your Dockerized app instantly!
+
+🧩 Services Running on EC2
+Service	Port	Description
+Nginx App	80	Your deployed app
+Prometheus	9090	Metrics monitoring
+Grafana	3000	Dashboards for metrics/logs
+Loki	3100	Log aggregation
+Node Exporter	9100	EC2 system metrics
+
