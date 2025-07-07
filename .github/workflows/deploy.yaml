@@ -23,10 +23,10 @@ jobs:
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "rm -rf /home/ubuntu/temp && mkdir -p /home/ubuntu/temp"
         scp -o StrictHostKeyChecking=no -r ./frontend ./backend ./monitoring ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/temp/
 
-    - name: Deploy application stack on EC2
+    - name: Deploy frontend, backend, and monitoring on EC2
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} 'bash -s' <<'ENDSSH'
-          # Move uploaded files to final location
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          # Move uploaded files
           sudo rm -rf /home/ubuntu/frontend /home/ubuntu/backend /home/ubuntu/monitoring
           sudo mv /home/ubuntu/temp/frontend /home/ubuntu/
           sudo mv /home/ubuntu/temp/backend /home/ubuntu/
@@ -48,4 +48,4 @@ jobs:
           cd /home/ubuntu/monitoring
           docker compose down || true
           docker compose up -d
-ENDSSH
+        EOF
