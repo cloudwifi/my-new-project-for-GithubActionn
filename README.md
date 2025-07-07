@@ -1,15 +1,4 @@
-✅ Great—thank you for sharing your repository link!
-I’ve **tailored a clean, professional `README.md`** specifically for your project at:
-👉 [`https://github.com/cloudwifi/my-new-project-for-GithubActionn`](https://github.com/cloudwifi/my-new-project-for-GithubActionn)
-
-Below is the **complete `README.md` you can copy-paste directly**:
-
----
-
-## ✨ Complete README.md for your project
-
-```markdown
-# 🚀 Automated EC2 Deployment with GitHub Actions, Terraform, Docker, Prometheus & Grafana
+ 🚀 Automated EC2 Deployment with GitHub Actions, Terraform, Docker, Prometheus & Grafana
 
 This project demonstrates a **complete DevOps pipeline**:
 
