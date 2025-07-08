@@ -42,6 +42,8 @@ def verify_password(plain_password, hashed_password):
 @app.post("/create_user")
 async def create_user(user: User):
     conn = get_db_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Database connection not available.")
     cur = conn.cursor()
     try:
         hashed_password = hash_password(user.password)
@@ -59,6 +61,8 @@ async def create_user(user: User):
 @app.post("/login")
 async def login(user: User):
     conn = get_db_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Database connection not available.")
     cur = conn.cursor()
     try:
         cur.execute("SELECT password FROM users WHERE username = %s", (user.username,))
@@ -78,6 +82,8 @@ async def login(user: User):
 @app.on_event("startup")
 async def startup_event():
     conn = get_db_connection()
+    if conn is None:
+        raise RuntimeError("DATABASE_URL is not set or DB connection failed. Cannot initialize DB.")
     cur = conn.cursor()
     try:
         cur.execute("""
