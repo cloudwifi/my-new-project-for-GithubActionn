@@ -1,22 +1,28 @@
-FROM node:14
+# Step 1: Build React App
+FROM node:14 as builder
 
 WORKDIR /app
 
-# Copy package files first for better caching
-COPY package.json ./
-COPY package-lock.json ./
+COPY package.json .
+COPY package-lock.json .
 
-# Install dependencies
 RUN npm install
 
-# Copy rest of the app
 COPY . .
 
-# Expose port 8080 for React dev server
-EXPOSE 8080
+# Create optimized production build
+RUN npm run build
 
-# Start with port override (React uses 3000 by default)
-ENV PORT=8080
+# Step 2: Serve with Nginx
+FROM nginx:alpine
 
-# Start the frontend app
-CMD ["npm", "start"]
+# Remove default nginx static files
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy React build output to Nginx
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
