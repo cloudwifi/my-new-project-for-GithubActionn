@@ -33,7 +33,7 @@ services:
     ports:
       - "5000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:mysecretpassword@db:5432/mydb
+      - DATABASE_URL=postgresql://postgres:mysecretpassword@host.docker.internal:5432/mydb
     depends_on:
       - db
 
