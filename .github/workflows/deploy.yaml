@@ -42,7 +42,7 @@ jobs:
           cd /home/ubuntu/backend
           docker build -t my-backend .
           docker stop my-backend || true && docker rm my-backend || true
-          docker run -d --name my-backend -p 5000:5000 my-backend
+          docker run -d --name my-backend -p 5000:8000 my-backend
 
           # MONITORING
           cd /home/ubuntu/monitoring
