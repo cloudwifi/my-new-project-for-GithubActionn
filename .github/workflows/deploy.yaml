@@ -26,26 +26,37 @@ jobs:
     - name: Deploy frontend, backend, and monitoring on EC2
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          set -e  # fail on error
+          echo "🔁 Starting deployment..."
+
           # Move uploaded files
           sudo rm -rf /home/ubuntu/frontend /home/ubuntu/backend /home/ubuntu/monitoring
           sudo mv /home/ubuntu/temp/frontend /home/ubuntu/
           sudo mv /home/ubuntu/temp/backend /home/ubuntu/
           sudo mv /home/ubuntu/temp/monitoring /home/ubuntu/
 
-          # FRONTEND
+          # Start monitoring stack
+          cd /home/ubuntu/monitoring
+          docker compose down || true
+          docker compose up -d
+
+          echo "⏳ Waiting for Postgres to be ready..."
+          sleep 10  # adjust if needed
+
+          # Build and run frontend
           cd /home/ubuntu/frontend
           docker build -t my-frontend .
           docker stop my-frontend || true && docker rm my-frontend || true
           docker run -d --name my-frontend -p 8080:80 my-frontend
 
-          # BACKEND
+          # Build and run backend with env
           cd /home/ubuntu/backend
           docker build -t my-backend .
           docker stop my-backend || true && docker rm my-backend || true
-          docker run -d --name my-backend -p 5000:8000 my-backend
+          docker run -d \
+            --name my-backend \
+            -p 5000:8000 \
+            -e DATABASE_URL="postgresql://postgres:mysecretpassword@host.docker.internal:5432/mydb" \
+            my-backend
 
-          # MONITORING
-          cd /home/ubuntu/monitoring
-          docker compose down || true
-          docker compose up -d
-        EOF
+          echo "✅ Deplo
