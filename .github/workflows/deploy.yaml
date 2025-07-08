@@ -1,4 +1,4 @@
-name: Build and Deploy to EC2
+name: Deploy to EC2
 
 on:
   push:
@@ -6,42 +6,46 @@ on:
       - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.5.4
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./app
-        push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+    - name: Copy project files to EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "rm -rf /home/ubuntu/temp && mkdir -p /home/ubuntu/temp"
+        scp -o StrictHostKeyChecking=no -r ./frontend ./backend ./monitoring ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/temp/
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
+    - name: Deploy frontend, backend, and monitoring on EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          # Move uploaded files
+          sudo rm -rf /home/ubuntu/frontend /home/ubuntu/backend /home/ubuntu/monitoring
+          sudo mv /home/ubuntu/temp/frontend /home/ubuntu/
+          sudo mv /home/ubuntu/temp/backend /home/ubuntu/
+          sudo mv /home/ubuntu/temp/monitoring /home/ubuntu/
 
-    steps:
-    - name: SSH into EC2 and deploy
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
-          docker stop myapp || true
-          docker rm myapp || true
-          docker run -d -p 80:80 --name myapp ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+          # FRONTEND
+          cd /home/ubuntu/frontend
+          docker build -t my-frontend .
+          docker stop my-frontend || true && docker rm my-frontend || true
+          docker run -d --name my-frontend -p 8080:80 my-frontend
+
+          # BACKEND
+          cd /home/ubuntu/backend
+          docker build -t my-backend .
+          docker stop my-backend || true && docker rm my-backend || true
+          docker run -d --name my-backend -p 5000:8000 my-backend
+
+          # MONITORING
+          cd /home/ubuntu/monitoring
+          docker compose down || true
+          docker compose up -d
+        EOF
