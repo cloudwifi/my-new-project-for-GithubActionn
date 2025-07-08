@@ -1,22 +1,27 @@
-FROM node:14
+# Step 1: Build React App
+FROM node:18 AS builder
 
 WORKDIR /app
 
-# Copy package files first for better caching
 COPY package.json ./
 COPY package-lock.json ./
 
-# Install dependencies
 RUN npm install
 
-# Copy rest of the app
 COPY . .
 
-# Expose port 8080 for React dev server
+# Enable legacy OpenSSL provider
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
+RUN npm run build
+
+# Step 2: Serve with Nginx
+FROM nginx:alpine
+
+RUN rm -rf /usr/share/nginx/html/*
+
+COPY --from=builder /app/build /usr/share/nginx/html
+
 EXPOSE 80
 
-# Start with port override (React uses 3000 by default)
-ENV PORT=8080
-
-# Start the frontend app
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]
