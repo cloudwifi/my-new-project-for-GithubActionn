@@ -6,9 +6,6 @@ WORKDIR /app
 COPY package.json ./
 COPY package-lock.json ./
 
-# Optional: REMOVE web-vitals if you don’t use it
-RUN npm uninstall web-vitals || true
-
 # Install dependencies
 RUN npm install
 
