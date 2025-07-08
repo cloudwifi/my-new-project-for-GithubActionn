@@ -36,7 +36,7 @@ jobs:
           cd /home/ubuntu/frontend
           docker build -t my-frontend .
           docker stop my-frontend || true && docker rm my-frontend || true
-          docker run -d --name my-frontend -p 8080:8080 my-frontend
+          docker run -d --name my-frontend -p 8080:80 my-frontend
 
           # BACKEND
           cd /home/ubuntu/backend
